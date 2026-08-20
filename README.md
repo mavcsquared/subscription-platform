@@ -27,19 +27,21 @@ updated by simulated payment-provider webhook events.
 ## Status
 
 The frontend was built first against mocked data so the UI could take
-shape before the backend existed; the backend and Postgres schema now
-exist and are being wired in feature by feature, replacing each mock in
-turn.
+shape before the backend existed. The backend and Postgres schema now
+exist, and every feature has been wired to it — the app runs end to end
+on real data:
 
-Real (backend-backed):
 - Auth — signup, login, session refresh/logout, Argon2 password
   hashing, JWT access + refresh tokens
-
-Still mocked on the frontend (not yet wired to the backend):
-- Plans/pricing page and plan switching
-- Usage-metering widget
-- Team/member management
-- Billing-events feed and webhook simulation
+- Team/member management, with server-side role enforcement (not just
+  hidden UI) verified independently of the frontend
+- Plans/pricing and plan switching
+- Usage metering, as an append-only event log rather than a mutable
+  counter
+- Billing events, including a real webhook endpoint
+  (`POST /webhooks/billing`, shared-secret protected, no user session)
+  separate from the authenticated UI that simulates a payment
+  provider's events hitting it
 
 ## Structure
 
