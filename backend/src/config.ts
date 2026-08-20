@@ -21,6 +21,7 @@ export const config = {
   databaseUrl: requireEnv('DATABASE_URL'),
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
   jwtSecret: requireEnv('JWT_SECRET'),
+  webhookSecret: requireEnv('WEBHOOK_SECRET'),
 }
 
 export const isProduction = config.nodeEnv === 'production'

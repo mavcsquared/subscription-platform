@@ -2,12 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { isOwnerOrAdmin } from '../auth/permissions'
 import {
-  mockFetchSubscription,
-  mockSimulateInvoiceFailed,
-  mockSimulateInvoicePaid,
-  mockSimulateSubscriptionCanceled,
-} from '../billing/mockBilling'
-import { mockListBillingEvents } from '../billing/mockBillingEvents'
+  fetchBillingEvents,
+  fetchSubscription,
+  simulateBillingEvent,
+  type SimulatableBillingEventType,
+} from '../billing/api'
 import type { BillingEvent, BillingEventType, Subscription } from '../billing/types'
 import { AppHeader } from '../components/AppHeader'
 
@@ -37,15 +36,13 @@ export function BillingEventsPage() {
   const [events, setEvents] = useState<BillingEvent[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSimulating, setIsSimulating] = useState(false)
+  const [simulateError, setSimulateError] = useState<string | null>(null)
 
   const canManageBilling = user ? isOwnerOrAdmin(user.role) : false
 
   const refresh = useCallback(async () => {
     if (!user) return
-    const [sub, fetchedEvents] = await Promise.all([
-      mockFetchSubscription(user.orgId),
-      mockListBillingEvents(user.orgId),
-    ])
+    const [sub, fetchedEvents] = await Promise.all([fetchSubscription(), fetchBillingEvents()])
     setSubscription(sub)
     setEvents(fetchedEvents)
     setIsLoading(false)
@@ -55,12 +52,17 @@ export function BillingEventsPage() {
     refresh()
   }, [refresh])
 
-  async function handleSimulate(action: (orgId: string) => Promise<Subscription>) {
-    if (!user) return
+  async function handleSimulate(event: SimulatableBillingEventType) {
     setIsSimulating(true)
-    await action(user.orgId)
-    await refresh()
-    setIsSimulating(false)
+    setSimulateError(null)
+    try {
+      await simulateBillingEvent(event)
+      await refresh()
+    } catch (err) {
+      setSimulateError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setIsSimulating(false)
+    }
   }
 
   return (
@@ -94,21 +96,21 @@ export function BillingEventsPage() {
         {canManageBilling && (
           <div className="mt-4 flex flex-wrap gap-3 rounded-lg border border-slate-200 bg-white p-4">
             <button
-              onClick={() => handleSimulate(mockSimulateInvoicePaid)}
+              onClick={() => handleSimulate('invoice.payment_succeeded')}
               disabled={isSimulating}
               className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
             >
               Simulate successful payment
             </button>
             <button
-              onClick={() => handleSimulate(mockSimulateInvoiceFailed)}
+              onClick={() => handleSimulate('invoice.payment_failed')}
               disabled={isSimulating || subscription?.status === 'canceled'}
               className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
             >
               Simulate failed payment
             </button>
             <button
-              onClick={() => handleSimulate(mockSimulateSubscriptionCanceled)}
+              onClick={() => handleSimulate('customer.subscription.deleted')}
               disabled={isSimulating || subscription?.status === 'canceled'}
               className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
             >
@@ -116,6 +118,7 @@ export function BillingEventsPage() {
             </button>
           </div>
         )}
+        {simulateError && <p className="mt-3 text-sm text-red-600">{simulateError}</p>}
 
         <div className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white">
           {isLoading ? (

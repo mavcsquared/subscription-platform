@@ -1,5 +1,9 @@
 import { apiFetch } from '../lib/apiClient'
-import type { Plan, PlanId, Subscription } from './types'
+import type { BillingEvent, BillingEventType, Plan, PlanId, Subscription } from './types'
+
+// Excludes customer.subscription.updated — that event is only ever
+// produced by changePlan() above, matching the backend's restriction.
+export type SimulatableBillingEventType = Exclude<BillingEventType, 'customer.subscription.updated'>
 
 // No orgId parameter anywhere here — the backend derives it from the
 // caller's access token, same pattern as team/api.ts.
@@ -28,4 +32,15 @@ export function recordUsage(quantity: number): Promise<number> {
     method: 'POST',
     body: JSON.stringify({ quantity }),
   }).then((r) => r.used)
+}
+
+export function fetchBillingEvents(): Promise<BillingEvent[]> {
+  return apiFetch<{ events: BillingEvent[] }>('/billing/events').then((r) => r.events)
+}
+
+export function simulateBillingEvent(event: SimulatableBillingEventType): Promise<void> {
+  return apiFetch<void>('/billing/simulate', {
+    method: 'POST',
+    body: JSON.stringify({ event }),
+  })
 }
