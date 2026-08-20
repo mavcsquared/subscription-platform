@@ -8,6 +8,13 @@
       "when": 1787263066570,
       "tag": "0000_cheerful_falcon",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787263471574,
+      "tag": "0001_glossy_power_man",
+      "breakpoints": true
     }
   ]
 }

@@ -86,6 +86,25 @@ export const billingEvents = pgTable(
   (table) => [index('billing_events_org_id_created_at_idx').on(table.orgId, table.createdAt)],
 )
 
+// Backs refresh tokens: the token itself is a random opaque string the
+// client only ever sees in an httpOnly cookie. Only its SHA-256 hash is
+// stored, so a DB leak doesn't hand out usable tokens. Deleting a row
+// revokes that session immediately; access tokens (short-lived JWTs)
+// aren't stored anywhere and simply expire on their own.
+export const sessions = pgTable(
+  'sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull().unique(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('sessions_user_id_idx').on(table.userId)],
+)
+
 export const orgsRelations = relations(orgs, ({ many, one }) => ({
   users: many(users),
   subscription: one(subscriptions, {
@@ -96,8 +115,13 @@ export const orgsRelations = relations(orgs, ({ many, one }) => ({
   billingEvents: many(billingEvents),
 }))
 
-export const usersRelations = relations(users, ({ one }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   org: one(orgs, { fields: [users.orgId], references: [orgs.id] }),
+  sessions: many(sessions),
+}))
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, { fields: [sessions.userId], references: [users.id] }),
 }))
 
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
