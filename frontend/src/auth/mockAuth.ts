@@ -1,4 +1,4 @@
-import type { Org, Role, User } from './types'
+import type { MemberStatus, Org, Role, TeamMember, User } from './types'
 
 /**
  * Fake backend, entirely client-side. Simulates network latency and the
@@ -18,6 +18,7 @@ interface StoredUser {
   email: string
   role: Role
   password: string // plaintext in this mock only; real backend uses bcrypt
+  status: MemberStatus
 }
 
 interface MockDb {
@@ -38,6 +39,7 @@ function seedDb(): MockDb {
         email: 'owner@acme.test',
         role: 'owner',
         password: 'password123',
+        status: 'active',
       },
     ],
   }
@@ -96,14 +98,15 @@ export async function mockSignup(
     throw new Error('An account with this email already exists')
   }
 
-  const org: Org = { id: `org_${db.orgs.length + 1}`, name: orgName.trim() }
+  const org: Org = { id: crypto.randomUUID(), name: orgName.trim() }
   const stored: StoredUser = {
-    id: `user_${db.users.length + 1}`,
+    id: crypto.randomUUID(),
     orgId: org.id,
     name: name.trim(),
     email: normalizedEmail,
     role: 'owner', // the person who signs up creates the org and owns it
     password,
+    status: 'active',
   }
 
   db.orgs.push(org)
@@ -117,4 +120,78 @@ export async function mockGetUserById(id: string): Promise<User | null> {
   const db = loadDb()
   const found = db.users.find((u) => u.id === id)
   return found ? toUser(db, found) : null
+}
+
+function toTeamMember(stored: StoredUser): TeamMember {
+  return {
+    id: stored.id,
+    name: stored.name,
+    email: stored.email,
+    role: stored.role,
+    status: stored.status,
+  }
+}
+
+export async function mockListTeamMembers(orgId: string): Promise<TeamMember[]> {
+  await delay(250)
+  const db = loadDb()
+  return db.users.filter((u) => u.orgId === orgId).map(toTeamMember)
+}
+
+/**
+ * Stands in for a real invite flow (which would email a token and let the
+ * invitee set their own password). Here the member is created immediately
+ * with status "invited" and no password, since there's no email step to
+ * simulate.
+ */
+export async function mockInviteMember(
+  orgId: string,
+  name: string,
+  email: string,
+  role: Role,
+): Promise<TeamMember> {
+  await delay()
+  const db = loadDb()
+  const normalizedEmail = email.trim().toLowerCase()
+  if (db.users.some((u) => u.email.toLowerCase() === normalizedEmail)) {
+    throw new Error('An account with this email already exists')
+  }
+
+  const stored: StoredUser = {
+    id: crypto.randomUUID(),
+    orgId,
+    name: name.trim(),
+    email: normalizedEmail,
+    role,
+    password: '',
+    status: 'invited',
+  }
+  db.users.push(stored)
+  saveDb(db)
+
+  return toTeamMember(stored)
+}
+
+export async function mockUpdateMemberRole(userId: string, role: Role): Promise<TeamMember> {
+  await delay(250)
+  const db = loadDb()
+  const found = db.users.find((u) => u.id === userId)
+  if (!found) throw new Error('Member not found')
+  if (found.role === 'owner') throw new Error("The org owner's role can't be changed")
+  if (role === 'owner') throw new Error('Ownership transfer is not supported')
+
+  found.role = role
+  saveDb(db)
+  return toTeamMember(found)
+}
+
+export async function mockRemoveMember(userId: string): Promise<void> {
+  await delay(250)
+  const db = loadDb()
+  const found = db.users.find((u) => u.id === userId)
+  if (!found) throw new Error('Member not found')
+  if (found.role === 'owner') throw new Error("The org owner can't be removed")
+
+  db.users = db.users.filter((u) => u.id !== userId)
+  saveDb(db)
 }

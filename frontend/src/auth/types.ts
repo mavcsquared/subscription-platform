@@ -13,3 +13,13 @@ export interface User {
   email: string
   role: Role
 }
+
+export type MemberStatus = 'active' | 'invited'
+
+export interface TeamMember {
+  id: string
+  name: string
+  email: string
+  role: Role
+  status: MemberStatus
+}
