@@ -1,14 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/AuthContext'
-import {
-  mockInviteMember,
-  mockListTeamMembers,
-  mockRemoveMember,
-  mockUpdateMemberRole,
-} from '../auth/mockTeam'
 import { canManageMember, isOwnerOrAdmin } from '../auth/permissions'
 import type { Role, TeamMember } from '../auth/types'
 import { AppHeader } from '../components/AppHeader'
+import { fetchTeamMembers, inviteMember, removeMember, updateMemberRole } from '../team/api'
 
 const roleLabels: Record<Role, string> = {
   owner: 'Owner',
@@ -21,6 +16,7 @@ export function TeamPage() {
   const [members, setMembers] = useState<TeamMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const [isInviteOpen, setIsInviteOpen] = useState(false)
   const [inviteName, setInviteName] = useState('')
@@ -33,7 +29,7 @@ export function TeamPage() {
 
   useEffect(() => {
     if (!user) return
-    mockListTeamMembers(user.orgId).then((fetched) => {
+    fetchTeamMembers().then((fetched) => {
       setMembers(fetched)
       setIsLoading(false)
     })
@@ -45,7 +41,7 @@ export function TeamPage() {
     setInviteError(null)
     setIsInviting(true)
     try {
-      const newMember = await mockInviteMember(user.orgId, inviteName, inviteEmail, inviteRole)
+      const newMember = await inviteMember(inviteName, inviteEmail, inviteRole)
       setMembers((prev) => [...prev, newMember])
       setInviteName('')
       setInviteEmail('')
@@ -60,9 +56,12 @@ export function TeamPage() {
 
   async function handleRoleChange(memberId: string, role: Role) {
     setBusyId(memberId)
+    setActionError(null)
     try {
-      const updated = await mockUpdateMemberRole(memberId, role)
+      const updated = await updateMemberRole(memberId, role)
       setMembers((prev) => prev.map((m) => (m.id === memberId ? updated : m)))
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setBusyId(null)
     }
@@ -71,9 +70,12 @@ export function TeamPage() {
   async function handleRemove(member: TeamMember) {
     if (!window.confirm(`Remove ${member.name} from the team?`)) return
     setBusyId(member.id)
+    setActionError(null)
     try {
-      await mockRemoveMember(member.id)
+      await removeMember(member.id)
       setMembers((prev) => prev.filter((m) => m.id !== member.id))
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setBusyId(null)
     }
@@ -163,6 +165,8 @@ export function TeamPage() {
             </button>
           </form>
         )}
+
+        {actionError && <p className="mt-4 text-sm text-red-600">{actionError}</p>}
 
         <div className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white">
           {isLoading ? (

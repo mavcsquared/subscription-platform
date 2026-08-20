@@ -6,6 +6,7 @@ import { authRouter } from './auth/routes.js'
 import { config } from './config.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { healthRouter } from './routes/health.js'
+import { teamRouter } from './team/routes.js'
 
 // Built separately from the listening server so tests can exercise the
 // app (e.g. with supertest) without binding a real port.
@@ -21,6 +22,7 @@ export function createApp() {
 
   app.use(healthRouter)
   app.use('/auth', authRouter)
+  app.use('/team', teamRouter)
 
   app.use(errorHandler)
 
