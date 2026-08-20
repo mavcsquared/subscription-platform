@@ -19,7 +19,11 @@ function setRefreshCookie(res: Response, token: string) {
   res.cookie(REFRESH_COOKIE, token, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'lax',
+    // 'none' is required for the cookie to be sent on cross-site
+    // requests (frontend and backend are on different domains in
+    // production) — 'none' only works with secure:true, which is only
+    // available over HTTPS, hence 'lax' for local HTTP dev.
+    sameSite: isProduction ? 'none' : 'lax',
     // Scoped to /auth so the browser doesn't attach this cookie to every
     // API request — only the endpoints that actually need it.
     path: '/auth',
