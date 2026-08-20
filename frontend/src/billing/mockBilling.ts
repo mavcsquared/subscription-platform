@@ -1,13 +1,15 @@
 import { recordBillingEvent } from './mockBillingEvents'
 import { getPlanById } from './mockPlans'
-import type { PlanId, Subscription } from './types'
+import type { Subscription } from './types'
 
 /**
- * Per-org subscription state, mocked the same way as mockAuth's user
- * store: persisted to localStorage so it survives refreshes. Deliberately
- * has no dependency on mockAuth — a real backend would have auth and
- * billing as separate services/tables too, and an org created via signup
- * has no subscription row until one is lazily created here.
+ * Per-org subscription state, persisted to localStorage. Plans/Usage are
+ * wired to the real backend now (see billing/api.ts) — mockChangePlan is
+ * gone since PlansPage no longer uses it. What's left (mockFetchSubscription
+ * plus the mockSimulate* functions) still backs BillingEventsPage's
+ * webhook simulator, which remains its own self-contained mock bubble,
+ * entirely disconnected from the real subscription these other pages now
+ * read/write. That gets resolved when billing events get wired up too.
  *
  * Every function that changes subscription state also calls
  * recordBillingEvent, standing in for what a real Stripe webhook handler
@@ -48,25 +50,6 @@ export async function mockFetchSubscription(orgId: string): Promise<Subscription
     saveStore(store)
   }
   return store[orgId]
-}
-
-export async function mockChangePlan(orgId: string, planId: PlanId): Promise<Subscription> {
-  await delay()
-  const store = loadStore()
-  const updated: Subscription = {
-    orgId,
-    planId,
-    status: 'active',
-    currentPeriodEnd: store[orgId]?.currentPeriodEnd ?? oneMonthFromNow(),
-  }
-  store[orgId] = updated
-  saveStore(store)
-  recordBillingEvent(
-    orgId,
-    'customer.subscription.updated',
-    `Switched to the ${getPlanById(planId)?.name ?? planId} plan`,
-  )
-  return updated
 }
 
 export async function mockSimulateInvoicePaid(orgId: string): Promise<Subscription> {

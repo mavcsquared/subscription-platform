@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
-import { mockFetchSubscription } from '../billing/mockBilling'
-import { getPlanById, mockFetchPlans } from '../billing/mockPlans'
-import { mockFetchUsage, mockRecordUsage } from '../billing/mockUsage'
+import { fetchPlans, fetchSubscription, fetchUsage, recordUsage } from '../billing/api'
 import type { Plan } from '../billing/types'
 import { AppHeader } from '../components/AppHeader'
 import { UsageMeter } from '../components/UsageMeter'
@@ -18,22 +16,19 @@ export function DashboardPage() {
 
   useEffect(() => {
     if (!user) return
-    Promise.all([mockFetchPlans(), mockFetchSubscription(user.orgId)]).then(
-      ([plans, subscription]) => {
-        const currentPlan = getPlanById(subscription.planId) ?? plans[0]
-        setPlan(currentPlan)
-        mockFetchUsage(user.orgId, currentPlan.usageLimit).then((count) => {
-          setUsage(count)
-          setIsLoading(false)
-        })
-      },
-    )
+    Promise.all([fetchPlans(), fetchSubscription()]).then(([plans, subscription]) => {
+      const currentPlan = plans.find((p) => p.id === subscription.planId) ?? plans[0]
+      setPlan(currentPlan)
+      fetchUsage().then((count) => {
+        setUsage(count)
+        setIsLoading(false)
+      })
+    })
   }, [user])
 
   async function handleSimulateUsage() {
-    if (!user) return
     setIsSimulating(true)
-    const updated = await mockRecordUsage(user.orgId, SIMULATED_REQUESTS_PER_CLICK)
+    const updated = await recordUsage(SIMULATED_REQUESTS_PER_CLICK)
     setUsage(updated)
     setIsSimulating(false)
   }

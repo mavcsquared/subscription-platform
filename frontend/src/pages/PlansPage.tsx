@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { isOwnerOrAdmin } from '../auth/permissions'
-import { mockChangePlan, mockFetchSubscription } from '../billing/mockBilling'
-import { mockFetchPlans } from '../billing/mockPlans'
+import { changePlan, fetchPlans, fetchSubscription } from '../billing/api'
 import type { Plan, PlanId, Subscription } from '../billing/types'
 import { AppHeader } from '../components/AppHeader'
 
@@ -16,26 +15,30 @@ export function PlansPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [switchingTo, setSwitchingTo] = useState<PlanId | null>(null)
+  const [switchError, setSwitchError] = useState<string | null>(null)
 
   const canManageBilling = user ? isOwnerOrAdmin(user.role) : false
 
   useEffect(() => {
     if (!user) return
-    Promise.all([mockFetchPlans(), mockFetchSubscription(user.orgId)]).then(
-      ([fetchedPlans, fetchedSubscription]) => {
-        setPlans(fetchedPlans)
-        setSubscription(fetchedSubscription)
-        setIsLoading(false)
-      },
-    )
+    Promise.all([fetchPlans(), fetchSubscription()]).then(([fetchedPlans, fetchedSubscription]) => {
+      setPlans(fetchedPlans)
+      setSubscription(fetchedSubscription)
+      setIsLoading(false)
+    })
   }, [user])
 
   async function handleSwitch(planId: PlanId) {
-    if (!user) return
     setSwitchingTo(planId)
-    const updated = await mockChangePlan(user.orgId, planId)
-    setSubscription(updated)
-    setSwitchingTo(null)
+    setSwitchError(null)
+    try {
+      const updated = await changePlan(planId)
+      setSubscription(updated)
+    } catch (err) {
+      setSwitchError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setSwitchingTo(null)
+    }
   }
 
   return (
@@ -52,6 +55,7 @@ export function PlansPage() {
             Only owners and admins can change the plan — you can view it as a member.
           </p>
         )}
+        {switchError && <p className="mt-1 text-sm text-red-600">{switchError}</p>}
 
         {isLoading ? (
           <p className="mt-8 text-sm text-slate-400">Loading plans…</p>

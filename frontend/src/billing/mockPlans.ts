@@ -1,9 +1,13 @@
 import type { Plan } from './types'
 
 /**
- * Static plan catalog. In the real backend this becomes a `plans` table
- * (or a small config table) that the pricing endpoint reads from; kept
- * here as a flat array since it doesn't need to be user-editable yet.
+ * Static plan catalog. Plans/Usage are wired to the real backend now
+ * (see billing/api.ts) — this file's only remaining consumer is
+ * mockBilling.ts's still-mocked webhook simulator, which needs a plan
+ * name to build event summaries. Its data is a frozen snapshot, not
+ * read from the real `plans` table, since the whole billing-events
+ * simulator is still a self-contained mock bubble until that gets
+ * wired up too.
  */
 const PLANS: Plan[] = [
   {
@@ -41,15 +45,6 @@ const PLANS: Plan[] = [
     ],
   },
 ]
-
-function delay(ms = 300) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-export async function mockFetchPlans(): Promise<Plan[]> {
-  await delay()
-  return PLANS
-}
 
 export function getPlanById(id: string): Plan | undefined {
   return PLANS.find((p) => p.id === id)

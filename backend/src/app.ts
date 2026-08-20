@@ -3,6 +3,9 @@ import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
 import { authRouter } from './auth/routes.js'
+import { plansRouter } from './billing/plans.routes.js'
+import { subscriptionRouter } from './billing/subscription.routes.js'
+import { usageRouter } from './billing/usage.routes.js'
 import { config } from './config.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { healthRouter } from './routes/health.js'
@@ -23,6 +26,9 @@ export function createApp() {
   app.use(healthRouter)
   app.use('/auth', authRouter)
   app.use('/team', teamRouter)
+  app.use('/plans', plansRouter)
+  app.use('/billing', subscriptionRouter)
+  app.use('/usage', usageRouter)
 
   app.use(errorHandler)
 
