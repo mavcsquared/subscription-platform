@@ -6,7 +6,7 @@ import {
   mockRemoveMember,
   mockUpdateMemberRole,
 } from '../auth/mockAuth'
-import { canInviteMembers, canManageMember } from '../auth/permissions'
+import { canManageMember, isOwnerOrAdmin } from '../auth/permissions'
 import type { Role, TeamMember } from '../auth/types'
 import { AppHeader } from '../components/AppHeader'
 
@@ -29,7 +29,7 @@ export function TeamPage() {
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [isInviting, setIsInviting] = useState(false)
 
-  const canInvite = user ? canInviteMembers(user.role) : false
+  const canInvite = user ? isOwnerOrAdmin(user.role) : false
 
   useEffect(() => {
     if (!user) return

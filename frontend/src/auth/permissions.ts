@@ -14,6 +14,11 @@ export function canManageMember(actingRole: Role, targetRole: Role, isSelf: bool
   return false
 }
 
-export function canInviteMembers(actingRole: Role): boolean {
-  return actingRole === 'owner' || actingRole === 'admin'
+/**
+ * Shared "is this role privileged enough" check, used to gate inviting
+ * members, changing plans, and managing billing — all three are
+ * currently the same owner/admin rule.
+ */
+export function isOwnerOrAdmin(role: Role): boolean {
+  return role === 'owner' || role === 'admin'
 }

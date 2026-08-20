@@ -17,3 +17,17 @@ export interface Subscription {
   status: SubscriptionStatus
   currentPeriodEnd: string // ISO date
 }
+
+export type BillingEventType =
+  | 'customer.subscription.updated'
+  | 'customer.subscription.deleted'
+  | 'invoice.payment_succeeded'
+  | 'invoice.payment_failed'
+
+export interface BillingEvent {
+  id: string
+  orgId: string
+  type: BillingEventType
+  createdAt: string // ISO date
+  summary: string
+}

@@ -29,6 +29,9 @@ export function AppHeader() {
             <NavLink to="/team" className={navLinkClass}>
               Team
             </NavLink>
+            <NavLink to="/billing" className={navLinkClass}>
+              Billing
+            </NavLink>
           </nav>
         </div>
         <button

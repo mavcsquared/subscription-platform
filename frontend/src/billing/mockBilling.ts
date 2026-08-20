@@ -1,3 +1,5 @@
+import { recordBillingEvent } from './mockBillingEvents'
+import { getPlanById } from './mockPlans'
 import type { PlanId, Subscription } from './types'
 
 /**
@@ -6,6 +8,10 @@ import type { PlanId, Subscription } from './types'
  * has no dependency on mockAuth — a real backend would have auth and
  * billing as separate services/tables too, and an org created via signup
  * has no subscription row until one is lazily created here.
+ *
+ * Every function that changes subscription state also calls
+ * recordBillingEvent, standing in for what a real Stripe webhook handler
+ * does: update the subscription row and log the event together.
  */
 
 const STORE_KEY = 'sp_mock_subscriptions'
@@ -55,5 +61,62 @@ export async function mockChangePlan(orgId: string, planId: PlanId): Promise<Sub
   }
   store[orgId] = updated
   saveStore(store)
+  recordBillingEvent(
+    orgId,
+    'customer.subscription.updated',
+    `Switched to the ${getPlanById(planId)?.name ?? planId} plan`,
+  )
+  return updated
+}
+
+export async function mockSimulateInvoicePaid(orgId: string): Promise<Subscription> {
+  await delay()
+  const store = loadStore()
+  const existing = store[orgId]
+  const updated: Subscription = {
+    orgId,
+    planId: existing?.planId ?? 'starter',
+    status: 'active',
+    currentPeriodEnd: existing?.currentPeriodEnd ?? oneMonthFromNow(),
+  }
+  store[orgId] = updated
+  saveStore(store)
+  recordBillingEvent(
+    orgId,
+    'invoice.payment_succeeded',
+    `Payment succeeded for the ${getPlanById(updated.planId)?.name ?? updated.planId} plan`,
+  )
+  return updated
+}
+
+export async function mockSimulateInvoiceFailed(orgId: string): Promise<Subscription> {
+  await delay()
+  const store = loadStore()
+  const existing = store[orgId]
+  const updated: Subscription = {
+    orgId,
+    planId: existing?.planId ?? 'starter',
+    status: 'past_due',
+    currentPeriodEnd: existing?.currentPeriodEnd ?? oneMonthFromNow(),
+  }
+  store[orgId] = updated
+  saveStore(store)
+  recordBillingEvent(orgId, 'invoice.payment_failed', 'Payment failed — subscription is now past due')
+  return updated
+}
+
+export async function mockSimulateSubscriptionCanceled(orgId: string): Promise<Subscription> {
+  await delay()
+  const store = loadStore()
+  const existing = store[orgId]
+  const updated: Subscription = {
+    orgId,
+    planId: existing?.planId ?? 'starter',
+    status: 'canceled',
+    currentPeriodEnd: existing?.currentPeriodEnd ?? oneMonthFromNow(),
+  }
+  store[orgId] = updated
+  saveStore(store)
+  recordBillingEvent(orgId, 'customer.subscription.deleted', 'Subscription canceled')
   return updated
 }

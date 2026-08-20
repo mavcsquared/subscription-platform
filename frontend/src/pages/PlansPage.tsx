@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
+import { isOwnerOrAdmin } from '../auth/permissions'
 import { mockChangePlan, mockFetchSubscription } from '../billing/mockBilling'
 import { mockFetchPlans } from '../billing/mockPlans'
 import type { Plan, PlanId, Subscription } from '../billing/types'
@@ -16,7 +17,7 @@ export function PlansPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [switchingTo, setSwitchingTo] = useState<PlanId | null>(null)
 
-  const canManageBilling = user?.role === 'owner' || user?.role === 'admin'
+  const canManageBilling = user ? isOwnerOrAdmin(user.role) : false
 
   useEffect(() => {
     if (!user) return
