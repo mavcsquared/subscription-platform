@@ -5,7 +5,11 @@ services:
     plan: free
     region: oregon
     rootDir: backend
-    buildCommand: npm install && npm run build
+    # --include=dev is required: NODE_ENV=production (set below, applies
+    # during build too) makes npm skip devDependencies by default, but
+    # typescript/@types/* are devDependencies the build itself needs —
+    # only the runtime (npm start) doesn't need them.
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /health
     envVars:
