@@ -1,28 +1,12 @@
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { AppHeader } from '../components/AppHeader'
 
 export function DashboardPage() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
-
-  function handleLogout() {
-    logout()
-    navigate('/login', { replace: true })
-  }
+  const { user } = useAuth()
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
-          <span className="text-sm font-semibold text-slate-900">{user?.orgName}</span>
-          <button
-            onClick={handleLogout}
-            className="text-sm font-medium text-slate-500 hover:text-slate-700"
-          >
-            Log out
-          </button>
-        </div>
-      </header>
+      <AppHeader />
 
       <main className="mx-auto max-w-4xl px-4 py-8">
         <h1 className="text-lg font-semibold text-slate-900">Welcome, {user?.name}</h1>
@@ -31,8 +15,7 @@ export function DashboardPage() {
         </p>
 
         <div className="mt-6 rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-400">
-          Subscription plan, usage metering, and billing status will show up here
-          once the backend is wired in.
+          Usage metering and billing status will show up here once the backend is wired in.
         </div>
       </main>
     </div>
