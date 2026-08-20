@@ -5,6 +5,7 @@ import { isProduction } from '../config.js'
 import { db } from '../db/index.js'
 import { orgs, subscriptions, users } from '../db/schema.js'
 import { ApiError } from '../errors.js'
+import { oneMonthFromNow } from '../lib/dates.js'
 import { requireAuth } from './middleware.js'
 import { hashPassword, verifyPassword } from './password.js'
 import { createSession, findValidSession, revokeSessionById, revokeSessionByToken } from './sessions.js'
@@ -28,12 +29,6 @@ function setRefreshCookie(res: Response, token: string) {
 
 function clearRefreshCookie(res: Response) {
   res.clearCookie(REFRESH_COOKIE, { path: '/auth' })
-}
-
-function oneMonthFromNow(): Date {
-  const date = new Date()
-  date.setMonth(date.getMonth() + 1)
-  return date
 }
 
 function isUniqueViolation(err: unknown): boolean {

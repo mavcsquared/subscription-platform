@@ -5,7 +5,7 @@ import {
   mockListTeamMembers,
   mockRemoveMember,
   mockUpdateMemberRole,
-} from '../auth/mockAuth'
+} from '../auth/mockTeam'
 import { canManageMember, isOwnerOrAdmin } from '../auth/permissions'
 import type { Role, TeamMember } from '../auth/types'
 import { AppHeader } from '../components/AppHeader'

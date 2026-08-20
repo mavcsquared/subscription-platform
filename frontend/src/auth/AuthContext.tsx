@@ -1,8 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { mockGetUserById, mockLogin, mockSignup } from './mockAuth'
+import { apiFetch, refreshAccessToken, setAccessToken } from '../lib/apiClient'
 import type { User } from './types'
-
-const SESSION_KEY = 'sp_session'
 
 interface AuthContextValue {
   user: User | null
@@ -18,36 +16,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isInitializing, setIsInitializing] = useState(true)
 
-  // Restore session on load, mirroring how a real app would validate a
-  // stored JWT against the backend before treating the user as logged in.
+  // The access token lives only in memory, so it never survives a page
+  // refresh. On load, try the httpOnly refresh cookie first; if that
+  // succeeds, fetch the full profile. If not, the user is just logged
+  // out — same outward behavior as the old localStorage-based restore.
   useEffect(() => {
-    const sessionUserId = localStorage.getItem(SESSION_KEY)
-    if (!sessionUserId) {
-      setIsInitializing(false)
-      return
+    async function restoreSession() {
+      const refreshed = await refreshAccessToken()
+      if (!refreshed) {
+        setIsInitializing(false)
+        return
+      }
+      try {
+        const { user: restoredUser } = await apiFetch<{ user: User }>('/auth/me')
+        setUser(restoredUser)
+      } catch {
+        setAccessToken(null)
+      } finally {
+        setIsInitializing(false)
+      }
     }
-    mockGetUserById(sessionUserId).then((found) => {
-      setUser(found)
-      if (!found) localStorage.removeItem(SESSION_KEY)
-      setIsInitializing(false)
-    })
+    restoreSession()
   }, [])
 
   async function login(email: string, password: string) {
-    const loggedInUser = await mockLogin(email, password)
-    localStorage.setItem(SESSION_KEY, loggedInUser.id)
+    const { accessToken, user: loggedInUser } = await apiFetch<{ accessToken: string; user: User }>(
+      '/auth/login',
+      { method: 'POST', body: JSON.stringify({ email, password }) },
+    )
+    setAccessToken(accessToken)
     setUser(loggedInUser)
   }
 
   async function signup(orgName: string, name: string, email: string, password: string) {
-    const newUser = await mockSignup(orgName, name, email, password)
-    localStorage.setItem(SESSION_KEY, newUser.id)
+    const { accessToken, user: newUser } = await apiFetch<{ accessToken: string; user: User }>(
+      '/auth/signup',
+      { method: 'POST', body: JSON.stringify({ orgName, name, email, password }) },
+    )
+    setAccessToken(accessToken)
     setUser(newUser)
   }
 
   function logout() {
-    localStorage.removeItem(SESSION_KEY)
+    setAccessToken(null)
     setUser(null)
+    // Best-effort session revocation — local state is already cleared,
+    // so the user is "logged out" immediately regardless of this call.
+    apiFetch('/auth/logout', { method: 'POST' }).catch(() => {})
   }
 
   return (
