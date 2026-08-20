@@ -5,6 +5,8 @@ export const roleEnum = pgEnum('role', ['owner', 'admin', 'member'])
 export const memberStatusEnum = pgEnum('member_status', ['active', 'invited'])
 export const subscriptionStatusEnum = pgEnum('subscription_status', ['active', 'past_due', 'canceled'])
 
+export type Role = (typeof roleEnum.enumValues)[number]
+
 export const orgs = pgTable('orgs', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),

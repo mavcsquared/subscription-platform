@@ -17,6 +17,10 @@ function requireEnv(name: string): string {
 
 export const config = {
   port: Number(process.env.PORT ?? 3001),
+  nodeEnv: process.env.NODE_ENV ?? 'development',
   databaseUrl: requireEnv('DATABASE_URL'),
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+  jwtSecret: requireEnv('JWT_SECRET'),
 }
+
+export const isProduction = config.nodeEnv === 'production'
