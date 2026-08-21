@@ -32,6 +32,16 @@ export async function applyBillingEvent(orgId: string, type: SimulatableEventTyp
     throw new ApiError(404, 'No subscription found for this organization')
   }
 
+  // A canceled subscription has no active billing cycle, so it can't
+  // generate a new invoice (paid or failed) or be canceled again — the
+  // only way back is resubscribing via changePlan, not a payment event.
+  if (subscription.status === 'canceled') {
+    throw new ApiError(
+      409,
+      'This subscription is canceled — choose a plan to resubscribe instead of simulating a payment event',
+    )
+  }
+
   let payload: Record<string, unknown> = {}
 
   if (type === 'invoice.payment_succeeded') {

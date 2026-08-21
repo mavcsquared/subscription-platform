@@ -97,7 +97,7 @@ export function BillingEventsPage() {
           <div className="mt-4 flex flex-wrap gap-3 rounded-lg border border-slate-200 bg-white p-4">
             <button
               onClick={() => handleSimulate('invoice.payment_succeeded')}
-              disabled={isSimulating}
+              disabled={isSimulating || subscription?.status === 'canceled'}
               className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
             >
               Simulate successful payment
@@ -117,6 +117,12 @@ export function BillingEventsPage() {
               Simulate subscription canceled
             </button>
           </div>
+        )}
+        {canManageBilling && subscription?.status === 'canceled' && (
+          <p className="mt-3 text-sm text-slate-500">
+            This subscription is canceled, so it can't receive any more payment events — pick a
+            plan on the Plans page to resubscribe.
+          </p>
         )}
         {simulateError && <p className="mt-3 text-sm text-red-600">{simulateError}</p>}
 
