@@ -55,6 +55,11 @@ export function PlansPage() {
             Only owners and admins can change the plan — you can view it as a member.
           </p>
         )}
+        {subscription?.status === 'canceled' && (
+          <p className="mt-1 text-sm text-amber-600">
+            Your subscription is canceled — choose a plan below to resubscribe.
+          </p>
+        )}
         {switchError && <p className="mt-1 text-sm text-red-600">{switchError}</p>}
 
         {isLoading ? (
@@ -62,7 +67,12 @@ export function PlansPage() {
         ) : (
           <div className="mt-8 grid gap-6 sm:grid-cols-3">
             {plans.map((plan) => {
-              const isCurrent = subscription?.planId === plan.id
+              // A canceled subscription keeps its last planId (only status
+              // changes), so without the status check the previously-active
+              // plan would still show as "current" and its own button would
+              // stay disabled — blocking the exact resubscribe action this
+              // page needs to offer.
+              const isCurrent = subscription?.status !== 'canceled' && subscription?.planId === plan.id
               return (
                 <div
                   key={plan.id}
