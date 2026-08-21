@@ -6,6 +6,19 @@ users with distinct roles, subscribe to tiered plans with usage limits,
 get metered against those limits, and have their subscription state
 updated by simulated payment-provider webhook events.
 
+## Live demo
+
+**https://frontend-two-olive-53.vercel.app**
+
+Log in with the seeded demo account: `owner@acme.test` / `password123`
+(public — anyone can log in and modify that org's data, so don't put
+anything sensitive there).
+
+The backend runs on Render's free tier, which spins down after ~15
+minutes of inactivity. The first request after a period of no traffic
+can take 30–60s to respond while it cold-starts — if you're sharing
+this link live, hitting it a minute beforehand avoids the wait.
+
 ## Domain
 
 - **Accounts & roles** — organizations with users belonging to them,
@@ -49,6 +62,18 @@ on real data:
 frontend/   React + TypeScript app
 backend/    Node.js + TypeScript API (Express + Drizzle + PostgreSQL)
 ```
+
+## Deployment
+
+Frontend on Vercel, backend on Render (free web service), database on
+Neon (free Postgres) — all free tier. `render.yaml` at the repo root
+declares the backend service as a Blueprint; `frontend/vercel.json` adds
+the SPA rewrite React Router needs. Neither platform's free tier
+auto-deploys from the other's changes by itself: Render redeploys
+automatically on push to `main` (Blueprint services track a branch),
+but the frontend was linked via the Vercel CLI rather than its GitHub
+integration, so a new frontend change needs an explicit
+`vercel deploy --prod` from `frontend/` to go live.
 
 ## Running locally
 
